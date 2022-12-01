@@ -1,4 +1,4 @@
-dataFile = open("data.txt", "r")
+dataFile = open("input.txt", "r")
 
 elves = [];
 
