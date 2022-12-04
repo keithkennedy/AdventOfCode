@@ -44,8 +44,7 @@ contentFromFile.enumerateLines { (line, _) in
     }
     
     // Check if any section assignment overlaps with other section assignment
-    if (!elfGroup[0].assignedSections.isDisjoint(with:elfGroup[1].assignedSections) &&
-        !elfGroup[1].assignedSections.isDisjoint(with:elfGroup[0].assignedSections))
+    if (elfGroup[0].assignedSections.isDisjoint(with:elfGroup[1].assignedSections))
     {
         totalOverlappedAssignedSectionPairs += 1
     }
