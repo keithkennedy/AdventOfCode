@@ -1,15 +1,16 @@
 import Foundation
 
+enum CrateMover {
+    case CrateMover9000,CrateMover9001
+}
+
 func containerStacks(input: String) -> [[Character]]
 {
     let stackChars: Set<Character> = ["[", "]", " "]
-    var stacks: [[Character]] = [[],[],[]]
+    // hard-coded init...
+    var stacks: [[Character]] = [[],[],[],[],[],[],[],[],[]]
     input.enumerateLines { (line, _) in
-        /*
-         loop each line with [
-         then loop each char
-            when we hit an alpha char - add to array based on index of char in string / 3?
-         */
+       
         if line.contains("[") {
             // Containers section
             var replaced = line.replacingOccurrences(of: "    ", with: "-")
@@ -41,11 +42,6 @@ func containerInstructions(input: String) -> [ContainerInstruction]
 {
     var instructions: [ContainerInstruction] = []
     input.enumerateLines { (line, _) in
-        /*
-         loop each line with [
-         then loop each char
-            when we hit an alpha char - add to array based on index of char in string / 3?
-         */
         if line.contains("move") {
             let replaced = line.replacingOccurrences(of: "move ", with: "")
                 .replacingOccurrences(of: " from ", with: ",")
@@ -61,11 +57,39 @@ func containerInstructions(input: String) -> [ContainerInstruction]
     return instructions;
 }
 
+func moveContainers(containers: [[Character]],
+                    instructions: [ContainerInstruction],
+                    crateMover: CrateMover) -> [[Character]]
+{
+    var rearrangedContainers = containers
+    for instruction in instructions {
+        print(instruction)
+        var moveSlice = rearrangedContainers[instruction.from-1][..<instruction.move]
+        
+        if (crateMover == CrateMover.CrateMover9001) {
+            moveSlice.reverse()
+        }
+        
+        rearrangedContainers[instruction.from-1].removeFirst(instruction.move)
+        rearrangedContainers[instruction.to-1].insert(contentsOf: moveSlice, at: 0)
+        
+        print(rearrangedContainers)
+    }
+    return rearrangedContainers
+}
+
 let contentFromFile = try NSString(contentsOfFile: "input.txt", encoding: String.Encoding.utf8.rawValue)
 let stacks = containerStacks(input: contentFromFile as String)
 let instructions = containerInstructions(input: contentFromFile as String)
 
-print(stacks)
-print(instructions)
+let crateMover = CrateMover.CrateMover9000
+let rearrangedContainers = moveContainers(containers: stacks, instructions: instructions, crateMover: crateMover)
 
-
+print("Top containers: ")
+for rearrangedContainer in rearrangedContainers {
+    if (rearrangedContainer.count == 0) {
+        print("None")
+    } else {
+        print(rearrangedContainer.first!)
+    }
+}
