@@ -1,124 +1,143 @@
 import Foundation
 
-var currentDirectoryStack: [String] = []
-var directorySizes: Dictionary<String, Int> = [:]
+var totalSizeOfSmallDirectories = 0
+var closestDirSize = Int.max
 
-func run(command: String) {
-    let splitCommand = command
-        .replacingOccurrences(of: "$ ", with: "")
-        .split(separator: " ")
+class Directory {
+    var name: String
+    var parent: Directory?
+    var children: [Directory]
+    var files: [File]
 
-    if splitCommand.first == "cd" {
-        change(directory: String(splitCommand.last!)) // TODO: why do I need String() here?
+    init(name: String) {
+        self.name = name
+        self.parent = nil
+        self.children = []
+        self.files = []
     }
-}
 
-func change(directory: String) {
-    if directory == ".." {
-        // pop directory array
-        currentDirectoryStack.popLast()
-    } else if directory == "/" {
-        currentDirectoryStack.append(directory)
-    } else {
-        currentDirectoryStack.append(directory + "/")
+    func size() -> Int {
+        var size = 0
+        for var f in files {
+            size += f.size
+        }
+
+        for var c in children {
+            size += c.size()
+        }
+
+        return size
     }
-    print("pwd: ", currentDirectoryStack)
-    print(currentDirectoryStack.joined())
-}
 
-func record(listing: String) {
-    print("Listing: ", listing)
-    let listDetails = listing.split(separator: " ")
+    func addSubdirectory(directory: Directory) {
+        directory.parent = self
+        self.children.append(directory)
+    }
 
-    if (listDetails.first != "dir") {
+    func listChildren(sep: String) {
+        let size = size()
+        if size <= 100000 {
+            totalSizeOfSmallDirectories += size
+        }
 
-        let currentDirectoryFlat = currentDirectoryStack.joined()
-        let fileSize =  Int(listDetails.first!)!
+        if (size >= requiredFilespace &&
+            size < closestDirSize) {
+            closestDirSize = size
+        }
 
-        if let size = directorySizes[currentDirectoryFlat] {
-            directorySizes[currentDirectoryFlat] = size + fileSize
-        } else {
-            directorySizes[currentDirectoryFlat] = fileSize
+        print(sep, self.name, "(",size,")")
+
+        listFiles(sep: sep + " ")
+
+        if children.count == 0 {
+            return
+        }
+
+        for var c in children {
+            c.listChildren(sep: sep + " ")
+        }
+    }
+
+    func listFiles(sep: String) {
+        for var f in files {
+            print(sep, f.name , "(file ", f.size, ")")
         }
     }
 }
 
-func addDirectorySizes(listing: String) {
-    let listDetails = listing.split(separator: " ")
+class File {
+    var name: String
+    var size: Int
+    init(name: String, size: Int) {
+        self.name = name
+        self.size = size
+    }
+}
 
-    if (listDetails.first == "dir") {
+let rootDirectory = Directory(name: "/")
+var currentDirectory = rootDirectory
 
-        let additionalDirectoryFlat = currentDirectoryStack.joined() + listDetails.last!
-        if let dirSize = directorySizes[additionalDirectoryFlat] {
+// Input
+let terminalOutput = try NSString(contentsOfFile: "input.txt", 
+                                        encoding: String.Encoding.utf8.rawValue)
+terminalOutput.enumerateLines { (output, _) in
+    if (output.first == "$") {
+        run(command: output)
+    } else if (output.starts(with: "dir")) {
+        let outputSplit = output.split(separator: " ")
+        recordDir(directoryName: String(outputSplit.last!))
+    } else {
+        let outputSplit = output.split(separator: " ")
+        let size = Int(outputSplit[0])!
+        let name = String(outputSplit[1])
 
-            // need to do this for each parent dir (could reverse pop the DIR stack)
-            /*
-            copy curDirStack
-            while count != 0:
-                add to dirSizes[curDirStack.joined()]
-                curDirStack.popLast()
-            */
+        recordFile(name: name, size: size)
+    }
+}
 
-            var parentDirectoryStack = currentDirectoryStack
-            while (parentDirectoryStack.count > 0) {
-                if let parentDirectorySize = directorySizes[parentDirectoryStack.joined()] {
-                    directorySizes[parentDirectoryStack.joined()] = parentDirectorySize + dirSize
-                }
-                parentDirectoryStack.popLast()
+func run(command: String) {
+    let commandSplit = command.split(separator: " ")
+    let operation = String(commandSplit[1])
+    if operation == "cd" {
+        change(directoryName: String(commandSplit[2]))
+    }
+}
+
+func change(directoryName: String) {
+    if (directoryName == "..") {
+        // Go up
+        if let parent = currentDirectory.parent {
+            currentDirectory = parent
+        }
+    } else {
+        // ignore root
+        if (directoryName != "/") {
+            if let dir = currentDirectory.children.first(where: { $0.name == directoryName}) {
+                print("cd (", dir.name ,")")
+                currentDirectory = dir
             }
         }
     }
 }
 
-let terminalOutput = 
-    try NSString(contentsOfFile: "input_demo.txt", 
-                       encoding: String.Encoding.utf8.rawValue)
-terminalOutput.enumerateLines { (output, _) in
-    if (output.first == "$") {
-        run(command: output)
-    } else {
-        record(listing: output)
-    }
+func recordDir(directoryName: String) {
+    print("Add dir: ", directoryName)
+    currentDirectory.addSubdirectory(directory: Directory(name: directoryName))
 }
 
-// Second enumeration to retrospectively add dir sizes to parent folders
-currentDirectoryStack = []
-terminalOutput.enumerateLines { (output, _) in
-    if (output.first == "$") {
-        run(command: output)
-    } else {
-        addDirectorySizes(listing: output)
-    }
+func recordFile(name: String, size: Int) {
+    print("Adding file to: ", currentDirectory.name, " fileName ", name, " (", currentDirectory.files.count, ")")
+    currentDirectory.files.append(File(name: name, size: size))
 }
 
-var directorySizeThreshold = 100000
-var totalSizeOfSmallDirs = 0
-for (path, size) in directorySizes {
-    if size <= directorySizeThreshold {
-        print("Adding: ", path , " ", size)
-        totalSizeOfSmallDirs += size
+// Solution
+let totalFilespace = 70000000
+let filespaceRequired = 30000000
+let rootSize = rootDirectory.size()
+let remainingFilespace = totalFilespace - rootSize
+let requiredFilespace = filespaceRequired - remainingFilespace
 
-        /*
-        could loop again - check if any other dirs start with "path" 
-        then add that to total
-        */
-        for (subPath, subSize) in directorySizes {
-            /*
-            if this doing all sub paths?! 
-            */
-            if (subPath != path &&
-                subPath.starts(with:path)
-                //subSize <= directorySizeThreshold
-                ) 
-                {
-                    print("Adding (s): ", subPath , " ", subSize)
-                    totalSizeOfSmallDirs += subSize
-                }
-        }
-    }
-}
+rootDirectory.listChildren(sep: "")
 
-print(directorySizes)
-print(totalSizeOfSmallDirs)
-
-// 12867536 (too hight)
+print("P1: ", totalSizeOfSmallDirectories)
+print("P2: ", closestDirSize)
