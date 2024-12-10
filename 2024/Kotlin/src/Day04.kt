@@ -29,10 +29,8 @@ enum class Direction {
 }
 
 fun main() {
-//    val input = readInput("Day04_example")
     val input = readInput("Day04")
-//    part1(input)
-    // TODO: remove all non "xmas" letters from this
+    part1(input)
     part2(input)
 }
 
