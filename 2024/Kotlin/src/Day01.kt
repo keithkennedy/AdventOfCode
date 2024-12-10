@@ -12,11 +12,9 @@ fun main() {
     println(partOneAnswer)
 
     // part 2
-    val left = pairs.map { it[0] }
-    val right = pairs.map { it[1] }
     val partTwoAnswer = List(orderedLeft.size) { index ->
         val thisSide = orderedLeft[index]
-        thisSide * right.count { thisSide == it }
+        thisSide * orderedRight.count { thisSide == it }
     }.sum()
     println(partTwoAnswer)
 }
