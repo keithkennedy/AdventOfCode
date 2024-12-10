@@ -30,29 +30,22 @@ class Point(val row: Int, val column: Int)
 
 fun main() {
     val input = readInput("Day10")
-//    val input = readInput("Day10_example")
     val matrix = Matrix(input.map { line -> line.map { it.toString().toInt() } })
 
-    var i = 0
-    matrix.grid.forEachIndexed { row, column ->
-        column.forEachIndexed { col, value ->
-            //println("$row, $col = $value")
-            val endPoints = endPoints(matrix, Point(row, col))
-                // comment out below line for part 2!
-//                .distinctBy { it.row to it.column }
-            i += endPoints.count()
-        }
-    }
-    println(i)
+    println(matrix.grid.flatMapIndexed { rowIndex, row ->
+        row.mapIndexed { col, value -> endPoints(matrix, Point(rowIndex, col))
+            // comment out below line for part 2!
+            .distinctBy { it.row to it.column }
+            .count() }
+        }.sum()
+    )
 }
 
 // given a start point -> what are the end points
 fun endPoints(matrix: Matrix, start: Point): List<Point> {
     var endPoints = ArrayList<Point>()
     val currentNumber = matrix.getValue(start)
-    if (currentNumber == null) return endPoints
-    if (currentNumber != 0) return endPoints
-
+    if (currentNumber == null || currentNumber != 0) return endPoints
     endPoints.addAll(nextPoints(matrix, start, currentNumber))
 
     return endPoints
@@ -66,7 +59,7 @@ fun nextPoints(matrix: Matrix, point: Point, currentNumber: Int): List<Point> {
 
     var n = ArrayList<Point>()
     val surroundingPoints = matrix.surroundingPoints(point)
-    for (point in surroundingPoints) {
+    surroundingPoints.forEach { point ->
         val pointValue = matrix.getValue(point)
         if (pointValue != null && pointValue == currentNumber + 1) {
             n.addAll(nextPoints(matrix, point, currentNumber + 1))
