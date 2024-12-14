@@ -1,10 +1,8 @@
-import kotlin.contracts.contract
-
 enum class GuardDirection {
     LEFT, RIGHT, FORWARD, BACKWARD;
 }
-fun main() {
 
+fun main() {
     class Space(val x: Int, val y: Int) {
         override fun toString(): String {
             return "."
@@ -17,16 +15,17 @@ fun main() {
         }
     }
 
-    class Obstacle(val x: Int, val y: Int) {
+    class Obstacle(var x: Int, var y: Int) {
         override fun toString(): String {
             return "#"
         }
     }
+
     class Guard(var x: Int, var y: Int, var direction: GuardDirection) {
         override fun toString(): String {
             return when (direction) {
                 GuardDirection.FORWARD -> "^"
-                GuardDirection.BACKWARD -> "▼"
+                GuardDirection.BACKWARD -> "v"
                 GuardDirection.LEFT -> "<"
                 GuardDirection.RIGHT -> ">"
             }
@@ -55,12 +54,19 @@ fun main() {
         val obstacles: ArrayList<Obstacle> = ArrayList<Obstacle>()
         val guards: ArrayList<Guard> = ArrayList<Guard>()
 
-        val spacesGuardVisited: ArrayList<PreviouslyOccupiedSpace> = ArrayList<PreviouslyOccupiedSpace>()
+        var originalGuardX: Int = 0
+        var originalGuardY: Int = 0
+        val spacesGuardVisited: MutableSet<PreviouslyOccupiedSpace> = mutableSetOf()
 
         var lastRowIndex: Int = 0
         var lastColumnIndex: Int = 0
 
         var isGuardInMap : Boolean = true
+            get() = field
+            set(value) {
+                field = value
+            }
+        var isLooped : Boolean = false
             get() = field
             set(value) {
                 field = value
@@ -78,6 +84,8 @@ fun main() {
                     }
                     if (char == '^') {
                         guards.add(Guard(rowIdx, columnIdx, GuardDirection.FORWARD))
+                        originalGuardX = rowIdx
+                        originalGuardY = columnIdx
                         // also add the space the guard is covering
                     }
 
@@ -86,38 +94,43 @@ fun main() {
             }
         }
 
-        /*
-        part 2:
-        - if the history keeps a track of direction
-        - then we can detect a loop when a perfect repeat is triggered (i.e., x/y/direction match a previous value)
-        (We're doing above now!)
-
-        - we know it's not a loop when the guard exits the map
-        - so we can iterate through each space location (except one where guard started)
-            and check each location to see if a loop is triggered when we add
-            an obstacle in that location
-         */
+        fun reset() {
+            isLooped = false
+            isGuardInMap = true
+            val guard = guards.first()
+            guard.direction = GuardDirection.FORWARD
+            guard.x = originalGuardX
+            guard.y = originalGuardY
+            spacesGuardVisited.clear()
+        }
 
         fun tick() {
             val guard = guards.first()
             val curOccupiedSpace = spaces.first { it.x == guard.x && it.y == guard.y }
-            spacesGuardVisited.add(PreviouslyOccupiedSpace(curOccupiedSpace.x,curOccupiedSpace.y, guard.direction))
+            val previouslyOccupiedSpace = PreviouslyOccupiedSpace(curOccupiedSpace.x,curOccupiedSpace.y, guard.direction)
+
+            if (spacesGuardVisited.any {
+                it.x == previouslyOccupiedSpace.x
+                        && it.y == previouslyOccupiedSpace.y
+                        && it.guardDirection == previouslyOccupiedSpace.guardDirection
+            }) {
+                isLooped = true
+                return
+            }
+            spacesGuardVisited.add(previouslyOccupiedSpace)
 
             val nextPosition = guard.nextPosition()
             val nextSpace = spaces.firstOrNull { it.x == nextPosition.first && it.y == nextPosition.second }
             val nextObstacle = obstacles.firstOrNull { it.x == nextPosition.first && it.y == nextPosition.second }
-            if (nextSpace != null) {
+            if (nextObstacle != null) {
+                guard.rotateRight()
+            } else if (nextSpace != null) {
                 // we have a space guard can move to
                 guard.x = nextSpace.x
                 guard.y = nextSpace.y
-            } else if (nextObstacle != null) {
-                guard.rotateRight()
             } else {
                 isGuardInMap = false
             }
-
-            //println("---")
-            //output()
         }
 
         fun output() {
@@ -143,8 +156,41 @@ fun main() {
 //    val input = readInput("Day06_example")
     val input = readInput("Day06")
     val map = Map(input)
-    while (map.isGuardInMap) {
+
+    // part 1
+    while (map.isGuardInMap && !map.isLooped) {
         map.tick()
     }
     println(map.spacesGuardVisited.distinctBy { it.x to it.y }.count())
+
+    // part 2
+    var newObstacle = Obstacle(0, 0)
+    map.obstacles.add(newObstacle)
+    var loops = 0
+    for (row in 0 until map.lastRowIndex + 1) {
+        for (column in 0 until map.lastColumnIndex + 1) {
+            val guard = map.guards.first()
+
+            map.reset()
+
+
+            if (!(guard.x == row && guard.y == column)) {
+                newObstacle.x = row
+                newObstacle.y = column
+            } else {
+                continue
+            }
+
+            // run map.tick() and check if looped at end - or not
+            // keep count of loops
+            while (map.isGuardInMap && !map.isLooped) {
+                map.tick()
+            }
+            if (map.isLooped) {
+                println("${row}-${column}")
+                loops++
+            }
+        }
+    }
+    println(loops)
 }
