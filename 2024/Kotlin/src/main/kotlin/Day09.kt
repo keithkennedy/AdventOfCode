@@ -19,8 +19,8 @@ fun output(diskMap: List<File>) : String {
 fun main() {
     val diskMap = readInput("Day09").first()
 //    val diskMap = "2333133121414131402"
-//    val dilutedDiskMap = dilutedDiskMap(diskMap)
-//    val fragmentedDiskMap = fragment(dilutedDiskMap)
+//    val .dilutedDiskMap = .dilutedDiskMap(diskMap)
+//    val fragmentedDiskMap = .fragment(.dilutedDiskMap)
     val dilutedDiskMap = dilutedDiskMap2(diskMap)
     val fragmentedDiskMap = fragment2(dilutedDiskMap)
     println(checksum2(fragmentedDiskMap))

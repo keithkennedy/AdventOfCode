@@ -59,7 +59,7 @@ fun masOccurrences(matrix: List<List<Char>>): Int {
 fun isMasCross(matrix: List<List<Char>>, rowIdx: Int, columnIdx: Int): Boolean {
     val letter = matrix[rowIdx][columnIdx]
     if (letter == 'A') {
-        // do we have a "M" around the letter?
+        // do we have a "M" around the .letter?
             // if so; then do we have a "S" opposite?
                 // add to count
             // is count >= 2 -> return true

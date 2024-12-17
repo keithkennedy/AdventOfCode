@@ -2,14 +2,17 @@ plugins {
     kotlin("jvm") version "2.1.0"
 }
 
-sourceSets {
-    main {
-        kotlin.srcDir("src")
-    }
+group = "org.example"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
 }
 
-tasks {
-    wrapper {
-        gradleVersion = "8.11.1"
-    }
+dependencies {
+    testImplementation(kotlin("test"))
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

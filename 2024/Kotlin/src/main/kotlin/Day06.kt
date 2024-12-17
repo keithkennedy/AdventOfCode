@@ -153,7 +153,7 @@ fun main() {
         }
     }
 
-//    val input = readInput("Day06_example")
+//    val input = .readInput("Day06_example")
     val input = readInput("Day06")
     val map = Map(input)
 
